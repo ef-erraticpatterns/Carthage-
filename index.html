@@ -8,6 +8,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
 :root{
   --bone:#FAFAF7;
@@ -58,6 +60,10 @@ header h1 span{color:var(--murex)}
 .progress-label{font-family:var(--mono);font-size:11px;color:var(--ink-soft);display:flex;justify-content:space-between;margin-bottom:5px}
 .progress-bar{height:4px;background:var(--line);border-radius:2px;overflow:hidden}
 .progress-fill{height:100%;background:linear-gradient(90deg,var(--murex),var(--ochre));width:0%;transition:width .4s ease}
+
+/* ---------- live map ---------- */
+#map{height:40vh;min-height:250px;border-bottom:1px solid var(--line);z-index:1}
+.leaflet-container{font-family:var(--body)}
 
 /* ---------- stratigraphic route ---------- */
 .route{padding:8px 16px 90px}
@@ -226,6 +232,8 @@ input[type=checkbox]{width:20px;height:20px;accent-color:var(--murex)}
   <div class="progress-label"><span id="prog-txt">0 / 6 stations</span><span id="prog-epoch"></span></div>
   <div class="progress-bar"><div class="progress-fill" id="prog-fill"></div></div>
 </div>
+
+<div id="map"></div>
 
 <main class="route" id="route"></main>
 
@@ -396,6 +404,7 @@ function renderRoute(){
   $("prog-txt").textContent=`${n} / ${STATIONS.length} stations`;
   $("prog-fill").style.width=(n/STATIONS.length*100)+"%";
   $("prog-epoch").textContent = n===STATIONS.length ? "fieldwork complete" : "";
+  refreshMarkers();
 }
 
 /* ================= GPS ================= */
@@ -406,6 +415,7 @@ function startGPS(){
     pos={lat:p.coords.latitude,lon:p.coords.longitude,acc:p.coords.accuracy};
     gpsStatus("on","±"+Math.round(pos.acc)+" m");
     autoArrive();
+    updateUserOnMap();
     renderRoute();
     if(openStationId) renderStationSub();
   },e=>{
@@ -425,6 +435,41 @@ function autoArrive(){
   }
 }
 
+/* ================= MAP ================= */
+let map=null,userMarker=null;
+function initMap(){
+  if(map||typeof L==="undefined") return;
+  map=L.map("map",{zoomControl:false});
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png",
+    {maxZoom:19,attribution:"&copy; OpenStreetMap"}).addTo(map);
+  const pts=STATIONS.map(s=>[s.lat,s.lon]);
+  L.polyline(pts,{color:"#2E4A57",weight:3,dashArray:"6 6",opacity:.7}).addTo(map);
+  STATIONS.forEach((st,i)=>{
+    const c=st.epoch==="punic"?"#6D1A4D":"#8C5A17";
+    st._marker=L.circleMarker([st.lat,st.lon],{radius:9,color:c,weight:3,
+      fillColor:S.visited[st.id]?c:"#FAFAF7",fillOpacity:1}).addTo(map);
+    st._marker.bindTooltip((i+1)+". "+st.name);
+    st._marker.on("click",()=>{
+      if(isLocked(i)){ toast("Locked — follow the route order, or enable free roam in Settings."); return; }
+      openStation(st.id);
+    });
+  });
+  map.fitBounds(L.latLngBounds(pts).pad(0.15));
+}
+function refreshMarkers(){
+  if(!map) return;
+  STATIONS.forEach(st=>{
+    if(st._marker) st._marker.setStyle({fillColor:S.visited[st.id]?(st.epoch==="punic"?"#6D1A4D":"#8C5A17"):"#FAFAF7"});
+  });
+}
+function updateUserOnMap(){
+  if(!map||!pos) return;
+  if(!userMarker){
+    userMarker=L.circleMarker([pos.lat,pos.lon],{radius:7,color:"#FFFFFF",weight:2,fillColor:"#2E4A57",fillOpacity:1}).addTo(map);
+    userMarker.bindTooltip("You");
+  }else userMarker.setLatLng([pos.lat,pos.lon]);
+}
+
 /* ================= STATION / CHAT ================= */
 function openStation(id){
   openStationId=id;
@@ -434,6 +479,7 @@ function openStation(id){
   $("st-visit-btn").textContent = S.visited[id] ? "Visited ✓" : "Mark visited";
   renderChat();
   $("station-panel").classList.add("open");
+  if(!(S.chats[id]&&S.chats[id].length) && S.key){ sendMsg(OPENER,true); }
 }
 function renderStationSub(){
   const st=STATIONS.find(s=>s.id===openStationId); if(!st) return;
@@ -454,6 +500,12 @@ function renderChat(){
     el.className="msg "+m.role+(m.error?" error":"");
     el.textContent=m.content;
     box.appendChild(el);
+    if(m.role==="user"&&m.scripted){
+      const sm=document.createElement("div");
+      sm.className="msg-meta"; sm.style.alignSelf="flex-end";
+      sm.textContent="scripted opener — identical at every station";
+      box.appendChild(sm);
+    }
     if(m.role==="assistant"&&m.model){
       const meta=document.createElement("div");
       meta.className="msg-meta"; meta.textContent=m.model;
@@ -462,17 +514,22 @@ function renderChat(){
   });
   box.scrollTop=box.scrollHeight;
 }
-async function sendMsg(){
+const OPENER="I have just arrived at this station. Please introduce it to me.";
+async function sendMsg(textArg,scripted){
   if(sending) return;
   const st=STATIONS.find(s=>s.id===openStationId);
-  const ta=$("chat-text");
-  const text=ta.value.trim();
-  if(!text) return;
+  let text;
+  if(typeof textArg==="string"){ text=textArg; }
+  else{
+    const ta=$("chat-text");
+    text=ta.value.trim();
+    if(!text) return;
+    ta.value=""; autosize(ta);
+  }
   if(!S.key){ toast("Add your OpenRouter key in Settings first."); return; }
-  ta.value=""; autosize(ta);
   S.chats[st.id]=S.chats[st.id]||[];
-  S.chats[st.id].push({role:"user",content:text,t:nowISO()});
-  logEntry(st,"user",text,null);
+  S.chats[st.id].push({role:"user",content:text,t:nowISO(),scripted:!!scripted});
+  logEntry(st,"user",text,null,scripted);
   save(); renderChat();
 
   sending=true; $("chat-send").disabled=true;
@@ -507,11 +564,11 @@ async function sendMsg(){
   sending=false; $("chat-send").disabled=false;
   save(); renderChat();
 }
-function logEntry(st,role,content,latencyMs){
+function logEntry(st,role,content,latencyMs,scripted){
   S.log.push({
     t:nowISO(), station:st.name, stationId:st.id,
     model:S.model, systemPrompt:sysPrompt(st),
-    role, content, latencyMs,
+    role, content, latencyMs, scripted:!!scripted,
     gps: pos?{lat:+pos.lat.toFixed(6),lon:+pos.lon.toFixed(6),acc:Math.round(pos.acc)}:null
   });
 }
@@ -588,7 +645,7 @@ $("st-visit-btn").onclick=()=>{
   const n=Object.keys(S.visited).length;
   toast(n===STATIONS.length?"Fieldwork complete — export your log!":"Station recorded ("+n+"/"+STATIONS.length+")");
 };
-$("chat-send").onclick=sendMsg;
+$("chat-send").onclick=()=>sendMsg();
 $("chat-text").addEventListener("input",e=>autosize(e.target));
 $("chat-text").addEventListener("keydown",e=>{
   if(e.key==="Enter"&&!e.shiftKey){ e.preventDefault(); sendMsg(); }
@@ -596,6 +653,7 @@ $("chat-text").addEventListener("keydown",e=>{
 
 /* ================= BOOT ================= */
 renderRoute();
+initMap();
 if(!S.started){ $("gate").classList.add("open"); }
 else{ startGPS(); }
 </script>
