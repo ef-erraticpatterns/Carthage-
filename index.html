@@ -245,6 +245,7 @@ input[type=checkbox]{width:20px;height:20px;accent-color:var(--murex)}
   <h1>Carthage <span>· Field Study</span></h1>
   <div class="hdr-right">
     <div class="gps-chip"><div class="gps-dot" id="gps-dot"></div><span id="gps-txt">GPS off</span></div>
+    <button class="icon-btn" id="open-intro" aria-label="About Carthage" style="font-family:var(--display);font-style:italic;font-weight:700;width:28px">i</button>
     <button class="icon-btn" id="open-settings" aria-label="Settings">⚙</button>
   </div>
 </header>
@@ -665,6 +666,7 @@ $("g-start").onclick=()=>{
 $("intro-start").onclick=()=>{ S.introSeen=true; save(); $("intro").classList.remove("open"); };
 $("s-intro").onclick=()=>{ $("settings-panel").classList.remove("open"); $("intro").classList.add("open"); };
 
+$("open-intro").onclick=()=>$("intro").classList.add("open");
 $("open-settings").onclick=openSettings;
 $("set-back").onclick=()=>$("settings-panel").classList.remove("open");
 $("s-model-preset").onchange=e=>{
