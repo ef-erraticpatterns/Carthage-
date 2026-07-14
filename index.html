@@ -255,9 +255,16 @@ input[type=checkbox]{width:20px;height:20px;accent-color:var(--murex)}
   <div class="settings-body">
     <div class="settings-title">Model</div>
     <div class="field">
-      <label for="s-model">OpenRouter model ID</label>
-      <input type="text" id="s-model">
-      <p class="hint">e.g. anthropic/claude-sonnet-4.5 · openai/gpt-4o · google/gemini-2.5-flash</p>
+      <label for="s-model-preset">Model</label>
+      <select id="s-model-preset">
+        <option value="anthropic/claude-sonnet-4.5">Claude Sonnet 4.5</option>
+        <option value="openai/gpt-4o">GPT-4o</option>
+        <option value="google/gemini-2.5-flash">Gemini 2.5 Flash</option>
+        <option value="deepseek/deepseek-chat-v3.1">DeepSeek V3.1</option>
+        <option value="custom">Custom model ID…</option>
+      </select>
+      <input type="text" id="s-model-custom" placeholder="vendor/model-id" style="display:none;margin-top:8px">
+      <p class="hint">The log records which model answered each message.</p>
     </div>
     <div class="field">
       <label for="s-key">API key</label>
@@ -511,7 +518,11 @@ function logEntry(st,role,content,latencyMs){
 
 /* ================= SETTINGS ================= */
 function openSettings(){
-  $("s-model").value=S.model;
+  const presetSel=$("s-model-preset"), customIn=$("s-model-custom");
+  const isPreset=[...presetSel.options].some(o=>o.value===S.model);
+  presetSel.value=isPreset?S.model:"custom";
+  customIn.style.display=isPreset?"none":"block";
+  customIn.value=isPreset?"":S.model;
   $("s-key").value=S.key;
   $("s-freeroam").checked=S.freeRoam;
   $("s-showsys").checked=S.showSys;
@@ -545,8 +556,13 @@ $("g-start").onclick=()=>{
 
 $("open-settings").onclick=openSettings;
 $("set-back").onclick=()=>$("settings-panel").classList.remove("open");
+$("s-model-preset").onchange=e=>{
+  $("s-model-custom").style.display = e.target.value==="custom" ? "block":"none";
+};
 $("s-save").onclick=()=>{
-  S.model=$("s-model").value.trim()||S.model;
+  const p=$("s-model-preset").value;
+  const m=p==="custom" ? $("s-model-custom").value.trim() : p;
+  if(m) S.model=m;
   S.key=$("s-key").value.trim();
   S.freeRoam=$("s-freeroam").checked;
   S.showSys=$("s-showsys").checked;
