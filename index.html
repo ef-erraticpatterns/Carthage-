@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#FAFAF7">
+<title>Carthage — Field Study</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Source+Sans+3:wght@400;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bone:#FAFAF7;
+  --ink:#1C1B1F;
+  --ink-soft:#5A5751;
+  --line:#DCD8CE;
+  --murex:#6D1A4D;      /* Punic — Tyrian purple */
+  --murex-soft:#F3E6EE;
+  --ochre:#8C5A17;      /* Roman */
+  --ochre-soft:#F2EADA;
+  --sea:#2E4A57;
+  --ok:#2F6B3A;
+  --err:#8C2B1F;
+  --card:#FFFFFF;
+  --radius:10px;
+  --mono:'IBM Plex Mono',monospace;
+  --body:'Source Sans 3',system-ui,sans-serif;
+  --display:'Fraunces',serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%}
+body{
+  font-family:var(--body);background:var(--bone);color:var(--ink);
+  font-size:16px;line-height:1.45;
+  padding-bottom:env(safe-area-inset-bottom);
+}
+button{font-family:inherit;font-size:inherit;cursor:pointer;border:none;background:none;color:inherit}
+input,select,textarea{font-family:inherit;font-size:16px;color:var(--ink)}
+a{color:var(--sea)}
+
+/* ---------- header ---------- */
+header{
+  padding:14px 16px 10px;border-bottom:1px solid var(--line);
+  display:flex;align-items:baseline;justify-content:space-between;gap:8px;
+  position:sticky;top:0;background:var(--bone);z-index:20;
+}
+header h1{font-family:var(--display);font-weight:700;font-size:22px;letter-spacing:.2px}
+header h1 span{color:var(--murex)}
+.hdr-right{display:flex;align-items:center;gap:12px}
+.gps-chip{font-family:var(--mono);font-size:11px;color:var(--ink-soft);display:flex;align-items:center;gap:5px}
+.gps-dot{width:8px;height:8px;border-radius:50%;background:var(--line)}
+.gps-dot.on{background:var(--ok)}
+.gps-dot.err{background:var(--err)}
+.icon-btn{font-size:20px;line-height:1;padding:4px;color:var(--ink-soft)}
+
+/* ---------- progress ---------- */
+.progress-wrap{padding:10px 16px 4px}
+.progress-label{font-family:var(--mono);font-size:11px;color:var(--ink-soft);display:flex;justify-content:space-between;margin-bottom:5px}
+.progress-bar{height:4px;background:var(--line);border-radius:2px;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--murex),var(--ochre));width:0%;transition:width .4s ease}
+
+/* ---------- stratigraphic route ---------- */
+.route{padding:8px 16px 90px}
+.epoch-label{
+  font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;
+  margin:18px 0 8px 44px;display:flex;align-items:center;gap:8px;
+}
+.epoch-label::after{content:"";flex:1;height:1px;background:var(--line)}
+.epoch-label.punic{color:var(--murex)}
+.epoch-label.roman{color:var(--ochre)}
+.station{display:flex;gap:14px;position:relative}
+.strat{width:30px;display:flex;flex-direction:column;align-items:center;flex-shrink:0}
+.strat-node{
+  width:16px;height:16px;border-radius:50%;border:3px solid var(--line);
+  background:var(--bone);margin-top:20px;flex-shrink:0;z-index:1;
+}
+.station.punic .strat-node{border-color:var(--murex)}
+.station.roman .strat-node{border-color:var(--ochre)}
+.station.visited .strat-node{background:currentColor}
+.station.visited.punic .strat-node{background:var(--murex)}
+.station.visited.roman .strat-node{background:var(--ochre)}
+.strat-line{width:3px;flex:1;background:var(--line);margin-top:2px}
+.station:last-child .strat-line{display:none}
+.station-card{
+  flex:1;background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+  padding:13px 14px;margin-bottom:12px;
+}
+.station.locked .station-card{opacity:.45}
+.station.current .station-card{border-color:var(--ink);box-shadow:0 1px 4px rgba(28,27,31,.08)}
+.station-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.station-name{font-family:var(--display);font-size:18px;font-weight:600}
+.station-dist{font-family:var(--mono);font-size:12px;color:var(--ink-soft);white-space:nowrap}
+.station-note{font-size:14px;color:var(--ink-soft);margin-top:3px}
+.station-actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.btn{
+  padding:9px 14px;border-radius:8px;font-weight:600;font-size:14px;
+  border:1px solid var(--line);background:var(--bone);min-height:40px;
+}
+.btn.primary{background:var(--ink);color:var(--bone);border-color:var(--ink)}
+.btn.accent{background:var(--murex);color:#fff;border-color:var(--murex)}
+.btn:disabled{opacity:.5;cursor:default}
+.badge{font-family:var(--mono);font-size:11px;padding:2px 7px;border-radius:20px;border:1px solid currentColor}
+.badge.visited{color:var(--ok)}
+.badge.here{color:var(--murex)}
+
+/* ---------- panels (station chat / settings) ---------- */
+.panel{
+  position:fixed;inset:0;background:var(--bone);z-index:50;display:none;
+  flex-direction:column;
+}
+.panel.open{display:flex}
+.panel-hdr{
+  padding:12px 16px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:12px;
+  background:var(--bone);
+}
+.panel-hdr .back{font-size:22px;padding:2px 6px;color:var(--ink-soft)}
+.panel-title{font-family:var(--display);font-size:19px;font-weight:600;flex:1}
+.panel-sub{font-family:var(--mono);font-size:11px;color:var(--ink-soft)}
+
+/* chat */
+.chat-scroll{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:10px}
+.sys-prompt{
+  font-family:var(--mono);font-size:12px;color:var(--ink-soft);
+  border:1px dashed var(--line);border-radius:8px;padding:9px 11px;background:#fff;
+}
+.sys-prompt b{color:var(--murex);font-weight:500}
+.msg{max-width:88%;padding:10px 13px;border-radius:12px;white-space:pre-wrap;word-wrap:break-word}
+.msg.user{align-self:flex-end;background:var(--sea);color:#fff;border-bottom-right-radius:3px}
+.msg.assistant{align-self:flex-start;background:#fff;border:1px solid var(--line);border-bottom-left-radius:3px}
+.msg.error{align-self:stretch;background:none;border:1px solid var(--err);color:var(--err);font-size:14px;border-radius:8px}
+.msg-meta{font-family:var(--mono);font-size:10px;color:var(--ink-soft);align-self:flex-start;margin-top:-6px}
+.typing{align-self:flex-start;font-family:var(--mono);font-size:12px;color:var(--ink-soft);padding:4px 2px}
+.chat-input{
+  display:flex;gap:8px;padding:10px 12px calc(10px + env(safe-area-inset-bottom));
+  border-top:1px solid var(--line);background:var(--bone);
+}
+.chat-input textarea{
+  flex:1;resize:none;border:1px solid var(--line);border-radius:10px;padding:10px 12px;
+  background:#fff;max-height:110px;line-height:1.35;
+}
+.chat-input button{background:var(--murex);color:#fff;border-radius:10px;padding:0 16px;font-weight:600;min-width:64px}
+.chat-input button:disabled{opacity:.5}
+
+/* ---------- settings / setup ---------- */
+.settings-body{flex:1;overflow-y:auto;padding:18px 16px 40px}
+.field{margin-bottom:18px}
+.field label{display:block;font-weight:600;font-size:14px;margin-bottom:5px}
+.field .hint{font-size:13px;color:var(--ink-soft);margin-top:4px}
+.field input[type=text],.field input[type=password],.field select{
+  width:100%;border:1px solid var(--line);border-radius:8px;padding:10px 12px;background:#fff;
+}
+.field-row{display:flex;gap:8px}
+.field-row input{flex:1}
+.divider{height:1px;background:var(--line);margin:22px 0}
+.settings-title{font-family:var(--mono);font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);margin-bottom:12px}
+.toggle-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0}
+.toggle-row .lbl{font-weight:600;font-size:14px}
+.toggle-row .sub{font-size:13px;color:var(--ink-soft)}
+input[type=checkbox]{width:20px;height:20px;accent-color:var(--murex)}
+.log-count{font-family:var(--mono);font-size:12px;color:var(--ink-soft);margin:8px 0 12px}
+.btn.block{width:100%;margin-bottom:10px}
+.btn.danger{color:var(--err);border-color:var(--err)}
+
+/* ---------- setup gate ---------- */
+.gate{
+  position:fixed;inset:0;background:var(--bone);z-index:60;overflow-y:auto;
+  padding:40px 22px 60px;display:none;
+}
+.gate.open{display:block}
+.gate h2{font-family:var(--display);font-size:30px;font-weight:700;line-height:1.15;margin-bottom:6px}
+.gate h2 span{color:var(--murex)}
+.gate .lede{color:var(--ink-soft);margin-bottom:26px;font-size:15px}
+.gate .mono-note{font-family:var(--mono);font-size:12px;color:var(--ink-soft);border-left:3px solid var(--murex);padding-left:10px;margin:22px 0}
+
+.toast{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+  background:var(--ink);color:var(--bone);padding:10px 16px;border-radius:10px;
+  font-size:14px;z-index:100;opacity:0;transition:opacity .25s;pointer-events:none;
+  max-width:90vw;text-align:center;
+}
+.toast.show{opacity:1}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<!-- ============ SETUP GATE ============ -->
+<div class="gate" id="gate">
+  <h2>Carthage<br><span>Field Study</span></h2>
+  <p class="lede">A research instrument for observing AI-mediated historical interpretation, station by station.</p>
+
+  <div class="field">
+    <label for="g-key">OpenRouter API key</label>
+    <input type="password" id="g-key" placeholder="sk-or-v1-…" autocomplete="off">
+    <p class="hint">Stored only in this browser (localStorage). Never sent anywhere except openrouter.ai.</p>
+  </div>
+
+  <div class="field">
+    <label for="g-model">Model</label>
+    <select id="g-model-preset">
+      <option value="anthropic/claude-sonnet-4.5">Claude Sonnet 4.5</option>
+      <option value="openai/gpt-4o">GPT-4o</option>
+      <option value="google/gemini-2.5-flash">Gemini 2.5 Flash</option>
+      <option value="deepseek/deepseek-chat-v3.1">DeepSeek V3.1</option>
+      <option value="custom">Custom model ID…</option>
+    </select>
+    <input type="text" id="g-model-custom" placeholder="vendor/model-id" style="display:none;margin-top:8px">
+    <p class="hint">You can switch models at any time in Settings — the log records which model answered each message.</p>
+  </div>
+
+  <button class="btn accent block" id="g-start" style="margin-top:10px">Begin fieldwork</button>
+
+  <p class="mono-note">Method note — the app gives the model no historical content and no interpretive instructions. Its only context is your current station name. The full prompt is visible in every chat, and every exchange is logged.</p>
+</div>
+
+<!-- ============ MAIN ============ -->
+<header>
+  <h1>Carthage <span>· Field Study</span></h1>
+  <div class="hdr-right">
+    <div class="gps-chip"><div class="gps-dot" id="gps-dot"></div><span id="gps-txt">GPS off</span></div>
+    <button class="icon-btn" id="open-settings" aria-label="Settings">⚙</button>
+  </div>
+</header>
+
+<div class="progress-wrap">
+  <div class="progress-label"><span id="prog-txt">0 / 6 stations</span><span id="prog-epoch"></span></div>
+  <div class="progress-bar"><div class="progress-fill" id="prog-fill"></div></div>
+</div>
+
+<main class="route" id="route"></main>
+
+<!-- ============ STATION PANEL ============ -->
+<div class="panel" id="station-panel">
+  <div class="panel-hdr">
+    <button class="back" id="st-back" aria-label="Back">‹</button>
+    <div style="flex:1">
+      <div class="panel-title" id="st-title"></div>
+      <div class="panel-sub" id="st-sub"></div>
+    </div>
+    <button class="btn" id="st-visit-btn" style="min-height:34px;padding:6px 10px;font-size:13px">Mark visited</button>
+  </div>
+  <div class="chat-scroll" id="chat-scroll"></div>
+  <div class="chat-input">
+    <textarea id="chat-text" rows="1" placeholder="Ask the guide anything…"></textarea>
+    <button id="chat-send">Send</button>
+  </div>
+</div>
+
+<!-- ============ SETTINGS PANEL ============ -->
+<div class="panel" id="settings-panel">
+  <div class="panel-hdr">
+    <button class="back" id="set-back" aria-label="Back">‹</button>
+    <div class="panel-title">Settings & log</div>
+  </div>
+  <div class="settings-body">
+    <div class="settings-title">Model</div>
+    <div class="field">
+      <label for="s-model">OpenRouter model ID</label>
+      <input type="text" id="s-model">
+      <p class="hint">e.g. anthropic/claude-sonnet-4.5 · openai/gpt-4o · google/gemini-2.5-flash</p>
+    </div>
+    <div class="field">
+      <label for="s-key">API key</label>
+      <input type="password" id="s-key" autocomplete="off">
+    </div>
+    <button class="btn primary block" id="s-save">Save</button>
+
+    <div class="divider"></div>
+    <div class="settings-title">Fieldwork</div>
+    <div class="toggle-row">
+      <div><div class="lbl">Free roam</div><div class="sub">Open any station regardless of order</div></div>
+      <input type="checkbox" id="s-freeroam">
+    </div>
+    <div class="toggle-row">
+      <div><div class="lbl">Show system prompt in chat</div><div class="sub">Display exactly what the model is told</div></div>
+      <input type="checkbox" id="s-showsys" checked>
+    </div>
+
+    <div class="divider"></div>
+    <div class="settings-title">Research log</div>
+    <div class="log-count" id="log-count"></div>
+    <button class="btn block" id="s-export">Export log (JSON)</button>
+    <button class="btn block" id="s-export-chats">Export full state (JSON)</button>
+    <button class="btn danger block" id="s-reset">Reset all data</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+/* ================= DATA ================= */
+const STATIONS = [
+  {id:"byrsa",   name:"Byrsa Hill",        epoch:"punic", lat:36.8528, lon:10.3233,
+   note:"Hilltop esplanade by the cathedral and museum. Start here."},
+  {id:"ports",   name:"Punic Ports",       epoch:"punic", lat:36.8425, lon:10.3251,
+   note:"Two harbour basins south of Byrsa, by Rue Hannibal."},
+  {id:"tophet",  name:"Tophet of Salammbô",epoch:"punic", lat:36.8393, lon:10.3229,
+   note:"Walled sanctuary precinct, a short walk south of the ports."},
+  {id:"theater", name:"Roman Theater",     epoch:"roman", lat:36.8590, lon:10.3272,
+   note:"Restored theatre on the Odeon hill, north of Byrsa."},
+  {id:"villas",  name:"Roman Villas",      epoch:"roman", lat:36.8580, lon:10.3305,
+   note:"Villa quarter with the Villa of the Aviary, next to the theatre."},
+  {id:"baths",   name:"Antonine Baths",    epoch:"roman", lat:36.8610, lon:10.3351,
+   note:"Seaside baths complex. Final station — end by the water."}
+];
+const ARRIVE_M = 120; // auto-arrival radius, metres
+
+/* ================= STATE ================= */
+const LS = "carthageFieldStudy.v1";
+let S = load() || {
+  key:"", model:"anthropic/claude-sonnet-4.5",
+  visited:{}, chats:{}, log:[],
+  freeRoam:false, showSys:true, started:false
+};
+function load(){ try{ return JSON.parse(localStorage.getItem(LS)); }catch(e){ return null; } }
+function save(){ try{ localStorage.setItem(LS, JSON.stringify(S)); }catch(e){ toast("Storage full — export your log."); } }
+
+let pos = null;          // {lat,lon,acc}
+let openStationId = null;
+let sending = false;
+
+/* ================= HELPERS ================= */
+const $ = id => document.getElementById(id);
+function toast(msg){ const t=$("toast"); t.textContent=msg; t.classList.add("show"); setTimeout(()=>t.classList.remove("show"),2600); }
+function distM(a,b,c,d){ // haversine
+  const R=6371000,r=x=>x*Math.PI/180;
+  const dLat=r(c-a),dLon=r(d-b);
+  const h=Math.sin(dLat/2)**2+Math.cos(r(a))*Math.cos(r(c))*Math.sin(dLon/2)**2;
+  return 2*R*Math.asin(Math.sqrt(h));
+}
+function fmtDist(m){ return m==null?"—":(m<1000?Math.round(m)+" m":(m/1000).toFixed(1)+" km"); }
+function nowISO(){ return new Date().toISOString(); }
+function sysPrompt(st){
+  return "The user is visiting the Carthage archaeological site in Tunisia. They are currently at: " + st.name + ".";
+}
+function firstUnvisited(){ return STATIONS.findIndex(s=>!S.visited[s.id]); }
+function isLocked(i){
+  if(S.freeRoam) return false;
+  const f=firstUnvisited();
+  return f!==-1 && i>f;
+}
+
+/* ================= ROUTE RENDER ================= */
+function renderRoute(){
+  const el=$("route"); el.innerHTML="";
+  let lastEpoch=null;
+  STATIONS.forEach((st,i)=>{
+    if(st.epoch!==lastEpoch){
+      lastEpoch=st.epoch;
+      const lab=document.createElement("div");
+      lab.className="epoch-label "+st.epoch;
+      lab.textContent=st.epoch==="punic"?"Punic stratum":"Roman stratum";
+      el.appendChild(lab);
+    }
+    const visited=!!S.visited[st.id];
+    const locked=isLocked(i);
+    const current=!visited && !locked && firstUnvisited()===i;
+    const d = pos? distM(pos.lat,pos.lon,st.lat,st.lon) : null;
+    const here = d!=null && d<=ARRIVE_M;
+
+    const row=document.createElement("div");
+    row.className="station "+st.epoch+(visited?" visited":"")+(locked?" locked":"")+(current?" current":"");
+    row.innerHTML=`
+      <div class="strat"><div class="strat-node"></div><div class="strat-line"></div></div>
+      <div class="station-card">
+        <div class="station-top">
+          <div class="station-name">${st.name}</div>
+          <div class="station-dist">${fmtDist(d)}</div>
+        </div>
+        <div class="station-note">${st.note}</div>
+        <div class="station-actions">
+          ${visited?'<span class="badge visited">visited ✓</span>':''}
+          ${here&&!visited?'<span class="badge here">you are here</span>':''}
+          <button class="btn ${current||visited?'accent':''}" data-open="${st.id}" ${locked?'disabled':''}>
+            ${visited?'Reopen chat':'Talk to the guide'}
+          </button>
+          <button class="btn" data-nav="${st.id}" ${locked?'disabled':''}>Navigate</button>
+        </div>
+      </div>`;
+    el.appendChild(row);
+  });
+  el.querySelectorAll("[data-open]").forEach(b=>b.onclick=()=>openStation(b.dataset.open));
+  el.querySelectorAll("[data-nav]").forEach(b=>b.onclick=()=>{
+    const st=STATIONS.find(s=>s.id===b.dataset.nav);
+    window.open(`https://www.google.com/maps/dir/?api=1&destination=${st.lat},${st.lon}&travelmode=walking`,"_blank");
+  });
+  const n=Object.keys(S.visited).length;
+  $("prog-txt").textContent=`${n} / ${STATIONS.length} stations`;
+  $("prog-fill").style.width=(n/STATIONS.length*100)+"%";
+  $("prog-epoch").textContent = n===STATIONS.length ? "fieldwork complete" : "";
+}
+
+/* ================= GPS ================= */
+function startGPS(){
+  if(!("geolocation" in navigator)){ gpsStatus("err","no GPS"); return; }
+  gpsStatus(null,"locating…");
+  navigator.geolocation.watchPosition(p=>{
+    pos={lat:p.coords.latitude,lon:p.coords.longitude,acc:p.coords.accuracy};
+    gpsStatus("on","±"+Math.round(pos.acc)+" m");
+    autoArrive();
+    renderRoute();
+    if(openStationId) renderStationSub();
+  },e=>{
+    gpsStatus("err", e.code===1?"GPS denied":"GPS error");
+  },{enableHighAccuracy:true,maximumAge:5000,timeout:20000});
+}
+function gpsStatus(cls,txt){
+  const d=$("gps-dot"); d.className="gps-dot"+(cls?" "+cls:"");
+  $("gps-txt").textContent=txt;
+}
+function autoArrive(){
+  const f=firstUnvisited();
+  if(f===-1||!pos) return;
+  const st=STATIONS[f];
+  if(distM(pos.lat,pos.lon,st.lat,st.lon)<=ARRIVE_M && !S.visited[st.id] && openStationId!==st.id){
+    toast("You’ve reached "+st.name);
+  }
+}
+
+/* ================= STATION / CHAT ================= */
+function openStation(id){
+  openStationId=id;
+  const st=STATIONS.find(s=>s.id===id);
+  $("st-title").textContent=st.name;
+  renderStationSub();
+  $("st-visit-btn").textContent = S.visited[id] ? "Visited ✓" : "Mark visited";
+  renderChat();
+  $("station-panel").classList.add("open");
+}
+function renderStationSub(){
+  const st=STATIONS.find(s=>s.id===openStationId); if(!st) return;
+  const d=pos?distM(pos.lat,pos.lon,st.lat,st.lon):null;
+  $("st-sub").textContent=`${st.lat.toFixed(4)}, ${st.lon.toFixed(4)} · ${fmtDist(d)} away · ${S.model}`;
+}
+function renderChat(){
+  const st=STATIONS.find(s=>s.id===openStationId);
+  const box=$("chat-scroll"); box.innerHTML="";
+  if(S.showSys){
+    const sp=document.createElement("div");
+    sp.className="sys-prompt";
+    sp.innerHTML="<b>system →</b> "+sysPrompt(st);
+    box.appendChild(sp);
+  }
+  (S.chats[st.id]||[]).forEach(m=>{
+    const el=document.createElement("div");
+    el.className="msg "+m.role+(m.error?" error":"");
+    el.textContent=m.content;
+    box.appendChild(el);
+    if(m.role==="assistant"&&m.model){
+      const meta=document.createElement("div");
+      meta.className="msg-meta"; meta.textContent=m.model;
+      box.appendChild(meta);
+    }
+  });
+  box.scrollTop=box.scrollHeight;
+}
+async function sendMsg(){
+  if(sending) return;
+  const st=STATIONS.find(s=>s.id===openStationId);
+  const ta=$("chat-text");
+  const text=ta.value.trim();
+  if(!text) return;
+  if(!S.key){ toast("Add your OpenRouter key in Settings first."); return; }
+  ta.value=""; autosize(ta);
+  S.chats[st.id]=S.chats[st.id]||[];
+  S.chats[st.id].push({role:"user",content:text,t:nowISO()});
+  logEntry(st,"user",text,null);
+  save(); renderChat();
+
+  sending=true; $("chat-send").disabled=true;
+  const typing=document.createElement("div");
+  typing.className="typing"; typing.textContent="guide is thinking…";
+  $("chat-scroll").appendChild(typing);
+  $("chat-scroll").scrollTop=1e9;
+
+  const messages=[{role:"system",content:sysPrompt(st)}]
+    .concat(S.chats[st.id].filter(m=>!m.error).map(m=>({role:m.role,content:m.content})));
+
+  const t0=Date.now();
+  try{
+    const res=await fetch("https://openrouter.ai/api/v1/chat/completions",{
+      method:"POST",
+      headers:{
+        "Authorization":"Bearer "+S.key,
+        "Content-Type":"application/json",
+        "X-Title":"Carthage Field Study"
+      },
+      body:JSON.stringify({model:S.model,messages})
+    });
+    const data=await res.json();
+    if(!res.ok || data.error) throw new Error((data.error&&data.error.message)||("HTTP "+res.status));
+    const reply=(data.choices&&data.choices[0]&&data.choices[0].message&&data.choices[0].message.content)||"(empty response)";
+    S.chats[st.id].push({role:"assistant",content:reply,t:nowISO(),model:S.model});
+    logEntry(st,"assistant",reply,Date.now()-t0);
+  }catch(err){
+    S.chats[st.id].push({role:"assistant",content:"Request failed: "+err.message+"\nCheck your key, model ID, and connection, then try again.",t:nowISO(),error:true});
+    logEntry(st,"error",String(err.message),Date.now()-t0);
+  }
+  sending=false; $("chat-send").disabled=false;
+  save(); renderChat();
+}
+function logEntry(st,role,content,latencyMs){
+  S.log.push({
+    t:nowISO(), station:st.name, stationId:st.id,
+    model:S.model, systemPrompt:sysPrompt(st),
+    role, content, latencyMs,
+    gps: pos?{lat:+pos.lat.toFixed(6),lon:+pos.lon.toFixed(6),acc:Math.round(pos.acc)}:null
+  });
+}
+
+/* ================= SETTINGS ================= */
+function openSettings(){
+  $("s-model").value=S.model;
+  $("s-key").value=S.key;
+  $("s-freeroam").checked=S.freeRoam;
+  $("s-showsys").checked=S.showSys;
+  $("log-count").textContent=S.log.length+" log entries · "+Object.keys(S.visited).length+" stations visited";
+  $("settings-panel").classList.add("open");
+}
+function download(name,obj){
+  const blob=new Blob([JSON.stringify(obj,null,2)],{type:"application/json"});
+  const a=document.createElement("a");
+  a.href=URL.createObjectURL(blob); a.download=name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),4000);
+}
+
+/* ================= WIRING ================= */
+function autosize(ta){ ta.style.height="auto"; ta.style.height=Math.min(ta.scrollHeight,110)+"px"; }
+
+$("g-model-preset").onchange=e=>{
+  $("g-model-custom").style.display = e.target.value==="custom" ? "block":"none";
+};
+$("g-start").onclick=()=>{
+  const key=$("g-key").value.trim();
+  if(!key){ toast("Paste your OpenRouter key to begin."); return; }
+  const preset=$("g-model-preset").value;
+  const model= preset==="custom" ? $("g-model-custom").value.trim() : preset;
+  if(!model){ toast("Enter a model ID."); return; }
+  S.key=key; S.model=model; S.started=true; save();
+  $("gate").classList.remove("open");
+  startGPS();
+};
+
+$("open-settings").onclick=openSettings;
+$("set-back").onclick=()=>$("settings-panel").classList.remove("open");
+$("s-save").onclick=()=>{
+  S.model=$("s-model").value.trim()||S.model;
+  S.key=$("s-key").value.trim();
+  S.freeRoam=$("s-freeroam").checked;
+  S.showSys=$("s-showsys").checked;
+  save(); renderRoute(); toast("Saved.");
+};
+$("s-freeroam").onchange=e=>{ S.freeRoam=e.target.checked; save(); renderRoute(); };
+$("s-showsys").onchange=e=>{ S.showSys=e.target.checked; save(); if(openStationId) renderChat(); };
+$("s-export").onclick=()=>download("carthage-research-log.json",{exported:nowISO(),entries:S.log});
+$("s-export-chats").onclick=()=>download("carthage-full-state.json",{exported:nowISO(),model:S.model,visited:S.visited,chats:S.chats,log:S.log});
+$("s-reset").onclick=()=>{
+  if(confirm("Delete all chats, logs and progress? Export first if you need the data.")){
+    localStorage.removeItem(LS); location.reload();
+  }
+};
+
+$("st-back").onclick=()=>{ $("station-panel").classList.remove("open"); openStationId=null; renderRoute(); };
+$("st-visit-btn").onclick=()=>{
+  if(!openStationId) return;
+  if(S.visited[openStationId]) return;
+  S.visited[openStationId]={t:nowISO(),gps:pos||null};
+  $("st-visit-btn").textContent="Visited ✓";
+  save(); renderRoute();
+  const n=Object.keys(S.visited).length;
+  toast(n===STATIONS.length?"Fieldwork complete — export your log!":"Station recorded ("+n+"/"+STATIONS.length+")");
+};
+$("chat-send").onclick=sendMsg;
+$("chat-text").addEventListener("input",e=>autosize(e.target));
+$("chat-text").addEventListener("keydown",e=>{
+  if(e.key==="Enter"&&!e.shiftKey){ e.preventDefault(); sendMsg(); }
+});
+
+/* ================= BOOT ================= */
+renderRoute();
+if(!S.started){ $("gate").classList.add("open"); }
+else{ startGPS(); }
+</script>
+</body>
+</html>
