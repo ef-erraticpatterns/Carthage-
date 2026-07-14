@@ -167,6 +167,27 @@ input[type=checkbox]{width:20px;height:20px;accent-color:var(--murex)}
 .btn.block{width:100%;margin-bottom:10px}
 .btn.danger{color:var(--err);border-color:var(--err)}
 
+/* ---------- intro ---------- */
+.intro{position:fixed;inset:0;background:var(--bone);z-index:55;overflow-y:auto;display:none;padding:36px 22px 46px}
+.intro.open{display:block}
+.intro .sub{font-family:var(--mono);font-size:11px;color:var(--murex);letter-spacing:.16em;text-transform:uppercase;margin-bottom:10px}
+.intro h2{font-family:var(--display);font-size:34px;font-weight:700;line-height:1.12;margin-bottom:18px}
+.intro p{font-size:16px;line-height:1.62;margin-bottom:14px;max-width:34em}
+.tanit{display:block;margin:24px auto 8px}
+.strata{margin:24px 0;border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+.strata-cap{font-family:var(--mono);font-size:11px;color:var(--ink-soft);text-align:center;margin:-16px 0 24px}
+.stratum{display:flex;justify-content:space-between;align-items:baseline;gap:10px;padding:12px 14px;color:#fff}
+.stratum .d{font-family:var(--mono);font-size:12px;opacity:.9;white-space:nowrap}
+.stratum .n{font-weight:600;font-size:15px;text-align:right}
+.s-found{background:#8A4A73}
+.s-punic{background:var(--murex)}
+.s-burn{background:#1C1B1F;padding:7px 14px}
+.s-burn .n,.s-burn .d{font-family:var(--mono);font-weight:400;font-size:11px;color:#D8D4CC}
+.s-roman{background:var(--ochre)}
+.s-late{background:var(--sea)}
+.s-now{background:var(--bone);color:var(--ink);border-top:1px dashed var(--line)}
+.intro .note{font-family:var(--mono);font-size:11px;color:var(--ink-soft);border-left:3px solid var(--line);padding-left:10px;margin:20px 0 24px}
+
 /* ---------- setup gate ---------- */
 .gate{
   position:fixed;inset:0;background:var(--bone);z-index:60;overflow-y:auto;
@@ -287,9 +308,10 @@ input[type=checkbox]{width:20px;height:20px;accent-color:var(--murex)}
       <input type="checkbox" id="s-freeroam">
     </div>
     <div class="toggle-row">
-      <div><div class="lbl">Show system prompt in chat</div><div class="sub">Display exactly what the model is told</div></div>
-      <input type="checkbox" id="s-showsys" checked>
+      <div><div class="lbl">Show system prompt in chat</div><div class="sub">Display the exact prompt and the scripted opener</div></div>
+      <input type="checkbox" id="s-showsys">
     </div>
+    <button class="btn block" id="s-intro" style="margin-top:12px">Reopen the Carthage introduction</button>
 
     <div class="divider"></div>
     <div class="settings-title">Research log</div>
@@ -298,6 +320,34 @@ input[type=checkbox]{width:20px;height:20px;accent-color:var(--murex)}
     <button class="btn block" id="s-export-chats">Export full state (JSON)</button>
     <button class="btn danger block" id="s-reset">Reset all data</button>
   </div>
+</div>
+
+<!-- ============ INTRO ============ -->
+<div class="intro" id="intro">
+  <div class="sub">Before the route</div>
+  <h2>Carthage,<br>a city with three lives</h2>
+  <p>Phoenician sailors from Tyre founded it — tradition says in 814 BC, under the exiled queen Elissa, whom the Romans would call Dido. They named it <i>Qart-hadasht</i>, "New City." It grew into the richest port of the western Mediterranean: twin harbours, fleets, and a trade web reaching from Spain to the Levant, famous for the purple dye pressed from murex shells.</p>
+  <p>Rome fought Carthage three times across more than a century — the wars of Hannibal among them. In 146 BC the city fell; it burned and was razed. Then, a century later, Rome rebuilt on the ashes, and Roman Carthage rose to become one of the largest cities of the empire, capital of the province of Africa: baths, theatre, villas.</p>
+  <p>Vandal kings ruled from it, Byzantium retook it, and after the Arab conquest of 698 AD its stones were carried away to build Tunis. The site you are about to walk is all of these cities at once, stacked in the ground.</p>
+  <svg class="tanit" width="64" height="82" viewBox="0 0 64 82" aria-label="Sign of Tanit">
+    <g fill="none" stroke="#6D1A4D" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="32" cy="13" r="9"/>
+      <path d="M8 33 L14 27 M56 33 L50 27 M14 29 H50"/>
+      <path d="M32 29 L12 76 H52 Z"/>
+    </g>
+  </svg>
+  <div class="strata">
+    <div class="stratum s-found"><span class="d">814 BC</span><span class="n">Phoenician founding</span></div>
+    <div class="stratum s-punic"><span class="d">~600–146 BC</span><span class="n">Punic Carthage</span></div>
+    <div class="stratum s-burn"><span class="d">146 BC</span><span class="n">destruction layer — the city burns</span></div>
+    <div class="stratum s-roman"><span class="d">44 BC–439 AD</span><span class="n">Roman Carthage</span></div>
+    <div class="stratum s-late"><span class="d">439–698 AD</span><span class="n">Vandal &amp; Byzantine city</span></div>
+    <div class="stratum s-now"><span class="d">today</span><span class="n">the archaeological site</span></div>
+  </div>
+  <p class="strata-cap">the site as a column of time, oldest first</p>
+  <p>One thing to carry with you: almost everything <i>written</i> about Punic Carthage survives in the words of its enemies, in Greek and Latin. The ground beneath your feet is the city's own testimony.</p>
+  <p class="note">This page is fixed app content, written by the app's author. Everything the guide says after it comes from the AI model, unscripted.</p>
+  <button class="btn accent block" id="intro-start">Start the route</button>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -326,7 +376,7 @@ const LS = "carthageFieldStudy.v1";
 let S = load() || {
   key:"", model:"anthropic/claude-sonnet-4.5",
   visited:{}, chats:{}, log:[],
-  freeRoam:false, showSys:true, started:false
+  freeRoam:false, showSys:false, started:false
 };
 function load(){ try{ return JSON.parse(localStorage.getItem(LS)); }catch(e){ return null; } }
 function save(){ try{ localStorage.setItem(LS, JSON.stringify(S)); }catch(e){ toast("Storage full — export your log."); } }
@@ -496,6 +546,7 @@ function renderChat(){
     box.appendChild(sp);
   }
   (S.chats[st.id]||[]).forEach(m=>{
+    if(m.role==="user"&&m.scripted&&!S.showSys) return;
     const el=document.createElement("div");
     el.className="msg "+m.role+(m.error?" error":"");
     el.textContent=m.content;
@@ -608,8 +659,11 @@ $("g-start").onclick=()=>{
   if(!model){ toast("Enter a model ID."); return; }
   S.key=key; S.model=model; S.started=true; save();
   $("gate").classList.remove("open");
+  if(!S.introSeen) $("intro").classList.add("open");
   startGPS();
 };
+$("intro-start").onclick=()=>{ S.introSeen=true; save(); $("intro").classList.remove("open"); };
+$("s-intro").onclick=()=>{ $("settings-panel").classList.remove("open"); $("intro").classList.add("open"); };
 
 $("open-settings").onclick=openSettings;
 $("set-back").onclick=()=>$("settings-panel").classList.remove("open");
@@ -655,7 +709,7 @@ $("chat-text").addEventListener("keydown",e=>{
 renderRoute();
 initMap();
 if(!S.started){ $("gate").classList.add("open"); }
-else{ startGPS(); }
+else{ startGPS(); if(!S.introSeen) $("intro").classList.add("open"); }
 </script>
 </body>
 </html>
